@@ -31,6 +31,18 @@
 
 ---
 
+> 🆕 **Обновление 2025.04.07** — Энтузиазм сообщества по поводу ремиксов dot-skill невероятен! Я создал галерею сообщества — PR приветствуются!
+>
+> Делитесь любыми skill или meta-skill и привлекайте трафик прямо в свой GitHub-репозиторий. Без посредников.
+>
+> 👉 **[titanwings.github.io/colleague-skill-site](https://titanwings.github.io/colleague-skill-site/)**
+>
+> Уже включены: 户晨风.skill · 峰哥亡命天涯.skill · 罗翔.skill и другие
+>
+> ⏳ PR сейчас проверяются вручную — может быть немного медленно, спасибо за терпение!
+
+---
+
 Created by [@titanwings](https://github.com/titanwings) | Powered by Shanghai AI Lab · AI Safety Center
 
 ## Поддерживаемые источники данных
