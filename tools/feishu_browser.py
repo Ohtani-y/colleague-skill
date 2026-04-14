@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-飞书浏览器抓取器（Playwright 方案）
+Feishu ブラウザスクレイパー（Playwright 方式）
 
-复用本机 Chrome 登录态，无需任何 token，能访问你有权限的所有飞书内容。
+ローカル Chrome のログインセッションを再利用し、トークン不要で権限のある全 Feishu コンテンツにアクセス可能。
 
-支持：
-  - 飞书文档（docx/docs）
-  - 飞书知识库（wiki）
-  - 飞书表格（sheets）→ 导出为 CSV
-  - 飞书消息记录（指定群聊）
+対応：
+  - Feishu ドキュメント（docx/docs）
+  - Feishu ナレッジベース（wiki）
+  - Feishu スプレッドシート（sheets）→ CSV としてエクスポート
+  - Feishu メッセージ履歴（指定グループチャット）
 
-安装：
+インストール：
   pip install playwright
   playwright install chromium
 
-用法：
+使い方：
   python3 feishu_browser.py --url "https://xxx.feishu.cn/wiki/xxx" --output out.txt
   python3 feishu_browser.py --url "https://xxx.feishu.cn/docx/xxx" --output out.txt
-  python3 feishu_browser.py --chat "后端组" --target "张三" --limit 500 --output out.txt
+  python3 feishu_browser.py --chat "バックエンドチーム" --target "田中太郎" --limit 500 --output out.txt
   python3 feishu_browser.py --url "https://xxx.feishu.cn/sheets/xxx" --output out.csv
 """
 
@@ -33,7 +33,7 @@ from typing import Optional
 
 
 def get_default_chrome_profile() -> str:
-    """根据操作系统返回 Chrome 默认 Profile 路径"""
+    """OS に応じた Chrome デフォルト Profile パスを返す"""
     system = platform.system()
     if system == "Darwin":
         return str(Path.home() / "Library/Application Support/Google/Chrome/Default")
@@ -46,7 +46,7 @@ def get_default_chrome_profile() -> str:
 
 
 def make_context(playwright, chrome_profile: Optional[str], headless: bool):
-    """创建复用登录态的浏览器上下文"""
+    """ログインセッションを再利用するブラウザコンテキストを作成"""
     profile = chrome_profile or get_default_chrome_profile()
     try:
         ctx = playwright.chromium.launch_persistent_context(
@@ -62,14 +62,14 @@ def make_context(playwright, chrome_profile: Optional[str], headless: bool):
         )
         return ctx
     except Exception as e:
-        print(f"⚠️  无法加载 Chrome Profile：{e}", file=sys.stderr)
-        print(f"   尝试的路径：{profile}", file=sys.stderr)
-        print("   请用 --chrome-profile 手动指定路径", file=sys.stderr)
+        print(f"⚠️  Chrome Profile のロードに失敗：{e}", file=sys.stderr)
+        print(f"   試行したパス：{profile}", file=sys.stderr)
+        print("   --chrome-profile でパスを手動指定してください", file=sys.stderr)
         sys.exit(1)
 
 
 def detect_page_type(url: str) -> str:
-    """根据 URL 判断飞书页面类型"""
+    """URL から Feishu ページタイプを判定"""
     if "/wiki/" in url:
         return "wiki"
     elif "/docx/" in url or "/docs/" in url:
@@ -83,10 +83,10 @@ def detect_page_type(url: str) -> str:
 
 
 def fetch_doc(page, url: str) -> str:
-    """抓取飞书文档或 Wiki 的文本内容"""
+    """Feishu ドキュメントまたは Wiki のテキスト内容を取得"""
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-    # 等待编辑器加载（飞书文档渲染较慢）
+    # エディターの読み込みを待機（Feishu ドキュメントのレンダリングは時間がかかる）
     selectors = [
         ".docs-reader-content",
         ".lark-editor-content",
@@ -106,13 +106,13 @@ def fetch_doc(page, url: str) -> str:
             continue
 
     if not loaded:
-        # 等待一段时间后直接提取 body 文本
+        # しばらく待ってから body テキストを直接抽出
         time.sleep(5)
 
-    # 额外等待异步内容渲染
+    # 非同期コンテンツのレンダリングを追加で待機
     time.sleep(2)
 
-    # 尝试多个选择器提取正文
+    # 複数のセレクターで本文を抽出
     for sel in selectors:
         try:
             el = page.query_selector(sel)
@@ -123,13 +123,13 @@ def fetch_doc(page, url: str) -> str:
         except Exception:
             continue
 
-    # fallback：提取整个 body
+    # フォールバック：body 全体を抽出
     text = page.inner_text("body")
     return text.strip()
 
 
 def fetch_sheet(page, url: str) -> str:
-    """抓取飞书表格，转为 CSV 格式"""
+    """Feishu スプレッドシートを取得し、CSV フォーマットに変換"""
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
     try:
@@ -139,7 +139,7 @@ def fetch_sheet(page, url: str) -> str:
 
     time.sleep(3)
 
-    # 通过 JS 提取表格数据
+    # JS 経由でテーブルデータを抽出
     data = page.evaluate("""
         () => {
             const rows = [];
@@ -175,22 +175,22 @@ def fetch_sheet(page, url: str) -> str:
             lines.append(",".join(f'"{cell}"' for cell in row))
         return "\n".join(lines)
 
-    # fallback：直接提取文本
+    # フォールバック：テキストを直接抽出
     return page.inner_text("body")
 
 
 def fetch_messages(page, chat_name: str, target_name: str, limit: int = 500) -> str:
     """
-    抓取指定群聊中目标人物的消息记录。
-    需要先导航到飞书 Web 版消息页面。
+    指定グループチャット内の対象人物のメッセージ履歴を取得。
+    Feishu Web 版のメッセージページに先にナビゲートする必要があります。
     """
-    # 打开飞书消息页
+    # Feishu メッセージページを開く
     page.goto("https://applink.feishu.cn/client/chat/open", wait_until="domcontentloaded", timeout=20000)
     time.sleep(3)
 
-    # 尝试搜索群聊
+    # グループチャットを検索
     try:
-        # 点击搜索
+        # 検索をクリック
         search_btn = page.query_selector('[data-test-id="search-btn"], .search-button, [placeholder*="搜索"]')
         if search_btn:
             search_btn.click()
@@ -198,22 +198,22 @@ def fetch_messages(page, chat_name: str, target_name: str, limit: int = 500) -> 
             page.keyboard.type(chat_name)
             time.sleep(2)
 
-            # 选择第一个结果
+            # 最初の結果を選択
             result = page.query_selector('.search-result-item:first-child, .im-search-item:first-child')
             if result:
                 result.click()
                 time.sleep(2)
     except Exception as e:
-        print(f"⚠️  自动搜索群聊失败：{e}", file=sys.stderr)
-        print(f"   请手动导航到「{chat_name}」群聊，然后按回车继续...", file=sys.stderr)
+        print(f"⚠️  グループチャットの自動検索に失敗：{e}", file=sys.stderr)
+        print(f"   「{chat_name}」グループチャットに手動でナビゲートし、Enter キーを押して続行してください...", file=sys.stderr)
         input()
 
-    # 向上滚动加载历史消息
-    print(f"正在加载消息历史...", file=sys.stderr)
+    # 上にスクロールして履歴メッセージを読み込み
+    print(f"メッセージ履歴を読み込み中...", file=sys.stderr)
     messages_container = page.query_selector('.message-list, .im-message-list, [data-testid="message-list"]')
 
     if messages_container:
-        for _ in range(10):  # 滚动 10 次
+        for _ in range(10):  # 10 回スクロール
             page.evaluate("el => el.scrollTop = 0", messages_container)
             time.sleep(1.5)
     else:
@@ -223,7 +223,7 @@ def fetch_messages(page, chat_name: str, target_name: str, limit: int = 500) -> 
 
     time.sleep(2)
 
-    # 提取消息
+    # メッセージを抽出
     messages = page.evaluate(f"""
         () => {{
             const target = "{target_name}";
@@ -269,29 +269,29 @@ def fetch_messages(page, chat_name: str, target_name: str, limit: int = 500) -> 
     """)
 
     if not messages:
-        print("⚠️  未能自动提取消息，尝试提取页面文本", file=sys.stderr)
+        print("⚠️  メッセージの自動抽出に失敗、ページテキストの抽出を試行中", file=sys.stderr)
         return page.inner_text("body")
 
-    # 按权重分类输出
+    # ウェイト別に分類して出力
     long_msgs = [m for m in messages if len(m.get("content", "")) > 50]
     short_msgs = [m for m in messages if len(m.get("content", "")) <= 50]
 
     lines = [
-        f"# 飞书消息记录（浏览器抓取）",
-        f"群聊：{chat_name}",
-        f"目标人物：{target_name}",
-        f"共 {len(messages)} 条消息",
+        f"# Feishu メッセージ履歴（ブラウザスクレイピング）",
+        f"グループチャット：{chat_name}",
+        f"対象人物：{target_name}",
+        f"合計 {len(messages)} 件のメッセージ",
         "",
         "---",
         "",
-        "## 长消息（观点/决策类）",
+        "## 長文メッセージ（意見/判断系）",
         "",
     ]
     for m in long_msgs:
         lines.append(f"[{m.get('time', '')}] {m.get('content', '')}")
         lines.append("")
 
-    lines += ["---", "", "## 日常消息", ""]
+    lines += ["---", "", "## 日常メッセージ", ""]
     for m in short_msgs[:200]:
         lines.append(f"[{m.get('time', '')}] {m.get('content', '')}")
 
@@ -299,50 +299,50 @@ def fetch_messages(page, chat_name: str, target_name: str, limit: int = 500) -> 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="飞书浏览器抓取器（复用 Chrome 登录态）")
-    parser.add_argument("--url", help="飞书文档/Wiki/表格链接")
-    parser.add_argument("--chat", help="群聊名称（抓取消息记录时使用）")
-    parser.add_argument("--target", help="目标人物姓名（只提取此人的消息）")
-    parser.add_argument("--limit", type=int, default=500, help="最多抓取消息条数（默认 500）")
-    parser.add_argument("--output", default=None, help="输出文件路径（默认打印到 stdout）")
-    parser.add_argument("--chrome-profile", default=None, help="Chrome Profile 路径（默认自动检测）")
-    parser.add_argument("--headless", action="store_true", help="无头模式（不显示浏览器窗口）")
-    parser.add_argument("--show-browser", action="store_true", help="显示浏览器窗口（调试用）")
+    parser = argparse.ArgumentParser(description="Feishu ブラウザスクレイパー（Chrome ログインセッション再利用）")
+    parser.add_argument("--url", help="Feishu ドキュメント/Wiki/スプレッドシートのリンク")
+    parser.add_argument("--chat", help="グループチャット名（メッセージ履歴取得時に使用）")
+    parser.add_argument("--target", help="対象人物の氏名（この人のメッセージのみ抽出）")
+    parser.add_argument("--limit", type=int, default=500, help="最大メッセージ取得件数（デフォルト 500）")
+    parser.add_argument("--output", default=None, help="出力ファイルパス（デフォルトは stdout に出力）")
+    parser.add_argument("--chrome-profile", default=None, help="Chrome Profile パス（デフォルト自動検出）")
+    parser.add_argument("--headless", action="store_true", help="ヘッドレスモード（ブラウザウィンドウを表示しない）")
+    parser.add_argument("--show-browser", action="store_true", help="ブラウザウィンドウを表示（デバッグ用）")
 
     args = parser.parse_args()
 
     if not args.url and not args.chat:
-        parser.error("请提供 --url（文档链接）或 --chat（群聊名称）")
+        parser.error("--url（ドキュメントリンク）または --chat（グループチャット名）を指定してください")
 
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        print("错误：请先安装 Playwright：pip install playwright && playwright install chromium", file=sys.stderr)
+        print("エラー：先に Playwright をインストールしてください：pip install playwright && playwright install chromium", file=sys.stderr)
         sys.exit(1)
 
     headless = args.headless and not args.show_browser
 
-    print(f"启动浏览器（{'无头' if headless else '有界面'}模式）...", file=sys.stderr)
+    print(f"ブラウザを起動中（{'ヘッドレス' if headless else 'GUI'}モード）...", file=sys.stderr)
 
     with sync_playwright() as p:
         ctx = make_context(p, args.chrome_profile, headless=headless)
         page = ctx.new_page()
 
-        # 检查是否已登录
+        # ログイン済みか確認
         page.goto("https://www.feishu.cn", wait_until="domcontentloaded", timeout=15000)
         time.sleep(2)
         if "login" in page.url.lower() or "signin" in page.url.lower():
-            print("⚠️  检测到未登录状态。", file=sys.stderr)
-            print("   请在打开的浏览器窗口中登录飞书，登录后按回车继续...", file=sys.stderr)
+            print("⚠️  未ログイン状態が検出されました。", file=sys.stderr)
+            print("   表示されたブラウザウィンドウで Feishu にログインし、完了後に Enter キーを押してください...", file=sys.stderr)
             if headless:
-                print("   提示：请用 --show-browser 参数显示浏览器窗口以完成登录", file=sys.stderr)
+                print("   ヒント：--show-browser パラメータでブラウザウィンドウを表示してログインしてください", file=sys.stderr)
                 sys.exit(1)
             input()
 
-        # 根据任务类型执行
+        # タスクタイプに応じて実行
         if args.url:
             page_type = detect_page_type(args.url)
-            print(f"页面类型：{page_type}，开始抓取...", file=sys.stderr)
+            print(f"ページタイプ：{page_type}、スクレイピング開始...", file=sys.stderr)
 
             if page_type == "sheet":
                 content = fetch_sheet(page, args.url)
@@ -360,12 +360,12 @@ def main() -> None:
         ctx.close()
 
     if not content or len(content.strip()) < 10:
-        print("⚠️  未能提取到有效内容", file=sys.stderr)
+        print("⚠️  有効なコンテンツを抽出できませんでした", file=sys.stderr)
         sys.exit(1)
 
     if args.output:
         Path(args.output).write_text(content, encoding="utf-8")
-        print(f"✅ 已保存到 {args.output}（{len(content)} 字符）", file=sys.stderr)
+        print(f"✅ {args.output} に保存しました（{len(content)} 文字）", file=sys.stderr)
     else:
         print(content)
 

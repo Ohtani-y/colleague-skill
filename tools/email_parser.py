@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-邮件解析器
+メール解析ツール
 
-支持格式：
-1. .eml 文件（标准邮件格式）
-2. .txt 文件（纯文本邮件记录）
-3. .mbox 文件（多封邮件合集）
+対応フォーマット：
+1. .eml ファイル（標準メールフォーマット）
+2. .txt ファイル（プレーンテキストメール記録）
+3. .mbox ファイル（複数メール集約ファイル）
 
-用法：
-    python email_parser.py --file emails.eml --target "zhangsan@company.com" --output output.txt
-    python email_parser.py --file inbox.mbox --target "张三" --output output.txt
+使い方：
+    python email_parser.py --file emails.eml --target "tanaka@company.com" --output output.txt
+    python email_parser.py --file inbox.mbox --target "田中太郎" --output output.txt
 """
 
 import email
@@ -24,7 +24,7 @@ from html.parser import HTMLParser
 
 
 class HTMLTextExtractor(HTMLParser):
-    """从 HTML 邮件内容中提取纯文本"""
+    """HTML メール内容からプレーンテキストを抽出"""
 
     def __init__(self):
         super().__init__()
@@ -50,7 +50,7 @@ class HTMLTextExtractor(HTMLParser):
 
 
 def decode_mime_str(s: str) -> str:
-    """解码 MIME 编码的邮件头字段"""
+    """MIME エンコードされたメールヘッダーフィールドをデコード"""
     if not s:
         return ""
     parts = decode_header(s)
@@ -68,7 +68,7 @@ def decode_mime_str(s: str) -> str:
 
 
 def extract_email_body(msg) -> str:
-    """从邮件对象中提取正文文本"""
+    """メールオブジェクトから本文テキストを抽出"""
     body = ""
 
     if msg.is_multipart():
@@ -108,7 +108,7 @@ def extract_email_body(msg) -> str:
             except Exception:
                 body = payload.decode("utf-8", errors="replace")
 
-    # 清理引用内容（Re: 时的原文引用）
+    # 引用内容のクリーンアップ（Re: 時の元メッセージ引用）
     body = re.sub(r"\n>.*", "", body)
     body = re.sub(r"\n-{3,}.*?原始邮件.*?\n", "\n", body, flags=re.DOTALL)
     body = re.sub(r"\n_{3,}\n.*", "", body, flags=re.DOTALL)
@@ -117,14 +117,14 @@ def extract_email_body(msg) -> str:
 
 
 def is_from_target(from_field: str, target: str) -> bool:
-    """判断邮件是否来自目标人"""
+    """メールが対象者から送信されたものかを判定"""
     from_str = decode_mime_str(from_field).lower()
     target_lower = target.lower()
     return target_lower in from_str
 
 
 def parse_eml_file(file_path: str, target: str) -> list[dict]:
-    """解析单个 .eml 文件"""
+    """単一の .eml ファイルを解析"""
     with open(file_path, "rb") as f:
         msg = email.message_from_binary_file(f, policy=email.policy.default)
 
@@ -148,7 +148,7 @@ def parse_eml_file(file_path: str, target: str) -> list[dict]:
 
 
 def parse_mbox_file(file_path: str, target: str) -> list[dict]:
-    """解析 .mbox 文件（多封邮件合集）"""
+    """mbox ファイルを解析（複数メール集約ファイル）"""
     results = []
     mbox = mailbox.mbox(file_path)
 
@@ -176,13 +176,13 @@ def parse_mbox_file(file_path: str, target: str) -> list[dict]:
 
 def parse_txt_file(file_path: str, target: str) -> list[dict]:
     """
-    解析纯文本格式的邮件记录
-    支持简单的分隔格式：
+    プレーンテキスト形式のメール記録を解析
+    以下のようなシンプルな区切りフォーマットに対応：
     From: xxx
     Subject: xxx
     Date: xxx
     ---
-    正文内容
+    本文内容
     ===
     """
     results = []
@@ -190,7 +190,7 @@ def parse_txt_file(file_path: str, target: str) -> list[dict]:
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 尝试按分隔符切割多封邮件
+    # 区切り文字で複数メールを分割
     emails_raw = re.split(r"\n={3,}\n|\n-{3,}\n(?=From:)", content)
 
     for raw in emails_raw:
@@ -202,7 +202,7 @@ def parse_txt_file(file_path: str, target: str) -> list[dict]:
         if not is_from_target(from_field, target):
             continue
 
-        # 提取正文（去掉头部字段后的内容）
+        # 本文を抽出（ヘッダーフィールドを除去した内容）
         body = re.sub(r"^(From|To|Subject|Date|CC|BCC):.*\n?", "", raw, flags=re.MULTILINE)
         body = body.strip()
 
@@ -221,10 +221,10 @@ def parse_txt_file(file_path: str, target: str) -> list[dict]:
 
 def classify_emails(emails: list[dict]) -> dict:
     """
-    对邮件按内容分类：
-    - 长邮件（正文 > 200 字）：技术方案、观点陈述
-    - 决策类：包含明确判断的邮件
-    - 日常沟通：短邮件
+    メールを内容別に分類：
+    - 長文メール（本文 > 200 文字）：技術提案、意見表明
+    - 判断系：明確な判断を含むメール
+    - 日常コミュニケーション：短いメール
     """
     long_emails = []
     decision_emails = []
@@ -255,39 +255,39 @@ def classify_emails(emails: list[dict]) -> dict:
 
 
 def format_output(target: str, classified: dict) -> str:
-    """格式化输出，供 AI 分析使用"""
+    """AI 分析用にフォーマットして出力"""
     lines = [
-        f"# 邮件提取结果",
-        f"目标人物：{target}",
-        f"总邮件数：{classified['total_count']}",
+        f"# メール抽出結果",
+        f"対象人物：{target}",
+        f"メール総数：{classified['total_count']}",
         "",
         "---",
         "",
-        "## 长邮件（技术方案/观点类，权重最高）",
+        "## 長文メール（技術提案/意見系、最高ウェイト）",
         "",
     ]
 
     for e in classified["long_emails"]:
-        lines.append(f"**主题：{e['subject']}** [{e['date']}]")
+        lines.append(f"**件名：{e['subject']}** [{e['date']}]")
         lines.append(e["body"])
         lines.append("")
         lines.append("---")
         lines.append("")
 
     lines += [
-        "## 决策类邮件",
+        "## 判断系メール",
         "",
     ]
 
     for e in classified["decision_emails"]:
-        lines.append(f"**主题：{e['subject']}** [{e['date']}]")
+        lines.append(f"**件名：{e['subject']}** [{e['date']}]")
         lines.append(e["body"])
         lines.append("")
 
     lines += [
         "---",
         "",
-        "## 日常沟通（风格参考）",
+        "## 日常コミュニケーション（スタイル参考）",
         "",
     ]
 
@@ -299,16 +299,16 @@ def format_output(target: str, classified: dict) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="解析邮件文件，提取目标人发出的邮件")
-    parser.add_argument("--file", required=True, help="输入文件路径（.eml / .mbox / .txt）")
-    parser.add_argument("--target", required=True, help="目标人物（邮箱地址或姓名）")
-    parser.add_argument("--output", default=None, help="输出文件路径（默认打印到 stdout）")
+    parser = argparse.ArgumentParser(description="メールファイルを解析し、対象者が送信したメールを抽出")
+    parser.add_argument("--file", required=True, help="入力ファイルパス（.eml / .mbox / .txt）")
+    parser.add_argument("--target", required=True, help="対象人物（メールアドレスまたは氏名）")
+    parser.add_argument("--output", default=None, help="出力ファイルパス（デフォルトは stdout に出力）")
 
     args = parser.parse_args()
 
     file_path = Path(args.file)
     if not file_path.exists():
-        print(f"错误：文件不存在 {file_path}", file=sys.stderr)
+        print(f"エラー：ファイルが存在しません {file_path}", file=sys.stderr)
         sys.exit(1)
 
     suffix = file_path.suffix.lower()
@@ -321,8 +321,8 @@ def main():
         emails = parse_txt_file(str(file_path), args.target)
 
     if not emails:
-        print(f"警告：未找到来自 '{args.target}' 的邮件", file=sys.stderr)
-        print("提示：请检查目标名称/邮箱是否与文件中的 From 字段一致", file=sys.stderr)
+        print(f"警告：'{args.target}' からのメールが見つかりませんでした", file=sys.stderr)
+        print("ヒント：対象の名前/メールアドレスがファイル内の From フィールドと一致しているか確認してください", file=sys.stderr)
 
     classified = classify_emails(emails)
     output = format_output(args.target, classified)
@@ -330,7 +330,7 @@ def main():
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(output)
-        print(f"已输出到 {args.output}，共 {len(emails)} 封邮件")
+        print(f"{args.output} に出力しました。合計 {len(emails)} 通のメール")
     else:
         print(output)
 

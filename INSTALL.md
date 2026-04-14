@@ -1,253 +1,253 @@
-# 同事.skill 安装说明
+# colleague.skill インストールガイド
 
 ---
 
-## 选择你的平台
+## プラットフォームを選択
 
-### A. Claude Code（推荐）
+### A. Claude Code（推奨）
 
-本项目遵循官方 [AgentSkills](https://agentskills.io) 标准，整个 repo 就是 skill 目录。克隆到 Claude skills 目录即可：
+本プロジェクトは公式 [AgentSkills](https://agentskills.io) 標準に準拠しており、リポジトリ全体が skill ディレクトリです。Claude の skills ディレクトリにクローンするだけで利用できます：
 
 ```bash
-# ⚠️ 必须在 git 仓库根目录执行！
+# ⚠️ git リポジトリのルートディレクトリで実行してください！
 cd $(git rev-parse --show-toplevel)
 
-# 方式 1：安装到当前项目
+# 方法 1：現在のプロジェクトにインストール
 mkdir -p .claude/skills
 git clone https://github.com/titanwings/colleague-skill .claude/skills/create-colleague
 
-# 方式 2：安装到全局（所有项目都能用）
+# 方法 2：グローバルにインストール（すべてのプロジェクトで利用可能）
 git clone https://github.com/titanwings/colleague-skill ~/.claude/skills/create-colleague
 ```
 
-然后在 Claude Code 中说 `/create-colleague` 即可启动。
+Claude Code で `/create-colleague` と入力すれば起動できます。
 
-生成的同事 Skill 默认写入 `./colleagues/` 目录。
+生成された同僚 Skill はデフォルトで `./colleagues/` ディレクトリに書き出されます。
 
 ---
 
 ### B. OpenClaw
 
 ```bash
-# 克隆到 OpenClaw 的 skills 目录
+# OpenClaw の skills ディレクトリにクローン
 git clone https://github.com/titanwings/colleague-skill ~/.openclaw/workspace/skills/create-colleague
 ```
 
-重启 OpenClaw session，说 `/create-colleague` 启动。
+OpenClaw セッションを再起動し、`/create-colleague` と入力して起動します。
 
 ---
 
-## 依赖安装
+## 依存パッケージのインストール
 
 ```bash
-# 基础（Python 3.9+）
-pip3 install pypinyin        # 中文姓名转拼音 slug（可选但推荐）
+# 基本（Python 3.9+）
+pip3 install pypinyin        # 中国語名をピンイン slug に変換（任意だが推奨）
 
-# 飞书浏览器方案（内部文档/需要登录权限的文档）
+# Feishu ブラウザ方式（社内ドキュメント/ログインが必要なドキュメント）
 pip3 install playwright
-playwright install chromium  # 仅需安装 chromium，不需要完整 Chrome
+playwright install chromium  # chromium のみインストールすればOK、完全な Chrome は不要
 
-# 飞书 MCP 方案（公司授权文档，通过 App Token 读取）
-npm install -g feishu-mcp    # 需要 Node.js 16+
+# Feishu MCP 方式（会社が認可したドキュメントを App Token で読み取り）
+npm install -g feishu-mcp    # Node.js 16+ が必要
 
-# 其他格式支持（可选）
-pip3 install python-docx     # Word .docx 转文本
-pip3 install openpyxl        # Excel .xlsx 转 CSV
+# その他のフォーマット対応（任意）
+pip3 install python-docx     # Word .docx をテキストに変換
+pip3 install openpyxl        # Excel .xlsx を CSV に変換
 ```
 
-### 平台方案选择指南
+### プラットフォーム別の方式選択ガイド
 
-| 场景 | 推荐方案 |
+| シナリオ | 推奨方式 |
 |------|---------|
-| 飞书用户，有 App 权限 | `feishu_auto_collector.py` |
-| 飞书内部文档（无 App 权限）| `feishu_browser.py` |
-| 飞书手动指定链接 | `feishu_mcp_client.py` |
-| 钉钉用户 | `dingtalk_auto_collector.py` |
-| 钉钉消息采集失败 | 手动截图 → 上传图片 |
-| Slack 用户 | `slack_auto_collector.py` |
+| Feishu ユーザーで App 権限あり | `feishu_auto_collector.py` |
+| Feishu 社内ドキュメント（App 権限なし）| `feishu_browser.py` |
+| Feishu で手動リンク指定 | `feishu_mcp_client.py` |
+| DingTalk ユーザー | `dingtalk_auto_collector.py` |
+| DingTalk メッセージ収集失敗時 | 手動スクリーンショット → 画像アップロード |
+| Slack ユーザー | `slack_auto_collector.py` |
 
-**飞书自动采集初始化**：
+**Feishu 自動収集の初期設定**：
 ```bash
 python3 tools/feishu_auto_collector.py --setup
-# 输入飞书开放平台的 App ID 和 App Secret
+# Feishu オープンプラットフォームの App ID と App Secret を入力
 ```
 
-**钉钉自动采集初始化**：
+**DingTalk 自動収集の初期設定**：
 ```bash
 python3 tools/dingtalk_auto_collector.py --setup
-# 输入钉钉开放平台的 AppKey 和 AppSecret
-# 首次运行加 --show-browser 参数以完成钉钉登录
+# DingTalk オープンプラットフォームの AppKey と AppSecret を入力
+# 初回実行時は --show-browser パラメータを追加して DingTalk ログインを完了
 ```
 
-**飞书 MCP 初始化**（手动指定链接时使用）：
+**Feishu MCP の初期設定**（手動リンク指定時に使用）：
 ```bash
 python3 tools/feishu_mcp_client.py --setup
 ```
 
-**飞书浏览器方案**（首次使用会弹窗登录，之后自动复用登录态）：
+**Feishu ブラウザ方式**（初回使用時にログインウィンドウが表示され、以降はログイン状態が自動的に再利用されます）：
 ```bash
 python3 tools/feishu_browser.py \
   --url "https://xxx.feishu.cn/wiki/xxx" \
-  --show-browser    # 首次使用加这个参数，登录后不再需要
+  --show-browser    # 初回使用時にこのパラメータを追加、ログイン後は不要
 ```
 
-**Slack 自动采集初始化**：
+**Slack 自動収集の初期設定**：
 ```bash
 pip3 install slack-sdk
 python3 tools/slack_auto_collector.py --setup
-# 按提示输入 Bot User OAuth Token（xoxb-...）
+# プロンプトに従って Bot User OAuth Token（xoxb-...）を入力
 ```
 
-> Slack 详细配置见下方「[Slack 自动采集配置](#slack-自动采集配置)」章节
+> Slack の詳細設定は下記「[Slack 自動収集の設定](#slack-自動収集の設定)」セクションを参照してください
 
 ---
 
-## Slack 自动采集配置
+## Slack 自動収集の設定
 
-### 前置条件
+### 前提条件
 
 - Python 3.9+
-- Slack Workspace（需要**管理员权限**安装 App，或联系管理员帮你安装）
+- Slack Workspace（App をインストールするには**管理者権限**が必要、または管理者にインストールを依頼）
 - `pip3 install slack-sdk`
 
-> **免费版 Workspace 限制**：只能访问最近 **90 天**的消息记录。付费版（Pro / Business+ / Enterprise）无此限制。
+> **無料版 Workspace の制限**：直近 **90 日間**のメッセージ履歴のみアクセス可能です。有料版（Pro / Business+ / Enterprise）にはこの制限はありません。
 
 ---
 
-### 步骤 1：创建 Slack App
+### ステップ 1：Slack App の作成
 
-1. 前往 [https://api.slack.com/apps](https://api.slack.com/apps) → **Create New App**
-2. 选择 **From scratch**
-3. 填写 App Name（如 `colleague-skill-bot`），选择目标 Workspace → **Create App**
+1. [https://api.slack.com/apps](https://api.slack.com/apps) にアクセス → **Create New App**
+2. **From scratch** を選択
+3. App Name（例：`colleague-skill-bot`）を入力し、対象の Workspace を選択 → **Create App**
 
 ---
 
-### 步骤 2：配置 Bot Token Scopes
+### ステップ 2：Bot Token Scopes の設定
 
-进入 **OAuth & Permissions** → **Bot Token Scopes** → **Add an OAuth Scope**，添加以下权限：
+**OAuth & Permissions** → **Bot Token Scopes** → **Add an OAuth Scope** で以下の権限を追加します：
 
 | Scope | 用途 |
 |-------|------|
-| `users:read` | 搜索用户列表（必需） |
-| `channels:read` | 列出 public channels（必需） |
-| `channels:history` | 读取 public channel 历史消息（必需） |
-| `groups:read` | 列出 private channels（必需） |
-| `groups:history` | 读取 private channel 历史消息（必需） |
-| `mpim:read` | 列出群 DM（可选） |
-| `mpim:history` | 读取群 DM 历史消息（可选） |
-| `im:read` | 列出 DM（可选，需用户授权） |
-| `im:history` | 读取 DM 历史消息（可选，需用户授权） |
+| `users:read` | ユーザーリストの検索（必須） |
+| `channels:read` | public channels の一覧取得（必須） |
+| `channels:history` | public channel のメッセージ履歴の読み取り（必須） |
+| `groups:read` | private channels の一覧取得（必須） |
+| `groups:history` | private channel のメッセージ履歴の読み取り（必須） |
+| `mpim:read` | グループ DM の一覧取得（任意） |
+| `mpim:history` | グループ DM のメッセージ履歴の読み取り（任意） |
+| `im:read` | DM の一覧取得（任意、ユーザー認可が必要） |
+| `im:history` | DM のメッセージ履歴の読み取り（任意、ユーザー認可が必要） |
 
 ---
 
-### 步骤 3：安装 App 到 Workspace
+### ステップ 3：App を Workspace にインストール
 
-1. 仍在 **OAuth & Permissions** 页面，点击 **Install to Workspace**
-2. Workspace 管理员审批后，复制 **Bot User OAuth Token**（格式：`xoxb-...`）
+1. **OAuth & Permissions** ページのまま、**Install to Workspace** をクリック
+2. Workspace 管理者の承認後、**Bot User OAuth Token**（形式：`xoxb-...`）をコピー
 
 ---
 
-### 步骤 4：将 Bot 加入目标频道
+### ステップ 4：Bot を対象チャンネルに追加
 
-Bot 只能读取**它已加入**的频道。在 Slack 中，进入每个目标频道，输入：
+Bot は**参加済み**のチャンネルのみ読み取れます。Slack で各対象チャンネルに入り、以下を入力します：
 
 ```
 /invite @your-bot-name
 ```
 
-> 提示：如果你不知道目标同事在哪些频道，可以先不邀请，运行采集时脚本会告知 Bot 加入了哪些频道，再补充邀请。
+> ヒント：対象の同僚がどのチャンネルにいるか分からない場合は、先に招待せずに収集スクリプトを実行してください。スクリプトが Bot の参加済みチャンネルを表示するので、その後に追加招待できます。
 
 ---
 
-### 步骤 5：运行配置向导
+### ステップ 5：設定ウィザードの実行
 
 ```bash
 python3 tools/slack_auto_collector.py --setup
 ```
 
-按提示粘贴 Bot Token，脚本会自动验证并保存到 `~/.colleague-skill/slack_config.json`。
+プロンプトに従って Bot Token を貼り付けてください。スクリプトが自動的に検証し、`~/.colleague-skill/slack_config.json` に保存します。
 
-配置成功后你会看到：
+設定が成功すると以下が表示されます：
 ```
-验证 Token ... OK
+Token を検証中 ... OK
   Workspace：Your Company，Bot：colleague-skill-bot
 
-✅ 配置已保存到 /Users/you/.colleague-skill/slack_config.json
+✅ 設定を /Users/you/.colleague-skill/slack_config.json に保存しました
 ```
 
 ---
 
-### 步骤 6：采集同事数据
+### ステップ 6：同僚データの収集
 
 ```bash
-# 基本用法（输入同事的中文名或英文用户名）
-python3 tools/slack_auto_collector.py --name "张三"
+# 基本的な使い方（同僚の名前またはユーザー名を入力）
+python3 tools/slack_auto_collector.py --name "張三"
 python3 tools/slack_auto_collector.py --name "john.doe"
 
-# 指定输出目录
-python3 tools/slack_auto_collector.py --name "张三" --output-dir ./knowledge/zhangsan
+# 出力ディレクトリを指定
+python3 tools/slack_auto_collector.py --name "張三" --output-dir ./knowledge/zhangsan
 
-# 限制采集量（大 Workspace 建议先小量测试）
-python3 tools/slack_auto_collector.py --name "张三" --msg-limit 500 --channel-limit 20
+# 収集量を制限（大規模 Workspace では最初に少量でテストすることを推奨）
+python3 tools/slack_auto_collector.py --name "張三" --msg-limit 500 --channel-limit 20
 ```
 
-输出文件：
+出力ファイル：
 ```
-knowledge/张三/
-├── messages.txt            # 按权重分类的消息记录
-└── collection_summary.json # 采集摘要（用户信息、频道列表、时间）
+knowledge/張三/
+├── messages.txt            # 重要度別に分類されたメッセージ記録
+└── collection_summary.json # 収集サマリー（ユーザー情報、チャンネル一覧、時刻）
 ```
 
 ---
 
-### 常见报错与解决
+### よくあるエラーと対処法
 
-| 报错 | 原因 | 解决 |
+| エラー | 原因 | 対処法 |
 |------|------|------|
-| `missing_scope: channels:history` | Bot Token 缺少权限 | 回到 api.slack.com → OAuth & Permissions 添加对应 Scope，重新安装 App |
-| `invalid_auth` | Token 无效或已吊销 | 重新运行 `--setup` 配置新 Token |
-| `not_in_channel` | Bot 未加入该频道 | 在 Slack 里 `/invite @bot` 邀请 Bot |
-| 未找到用户 | 姓名拼写不对 | 改用英文用户名（如 `john.doe`）或 Slack display name |
-| 消息只有 90 天 | 免费版限制 | 升级 Workspace 或手动补充截图 |
-| 速率限制（429）| 请求太频繁 | 脚本会自动等待重试，无需手动处理 |
+| `missing_scope: channels:history` | Bot Token に権限が不足 | api.slack.com → OAuth & Permissions で対応する Scope を追加し、App を再インストール |
+| `invalid_auth` | Token が無効または失効済み | `--setup` を再実行して新しい Token を設定 |
+| `not_in_channel` | Bot がそのチャンネルに未参加 | Slack で `/invite @bot` を実行して Bot を招待 |
+| ユーザーが見つからない | 名前のスペルが違う | 英語ユーザー名（例：`john.doe`）または Slack の display name を使用 |
+| メッセージが 90 日分しかない | 無料版の制限 | Workspace をアップグレードするか、手動でスクリーンショットを補完 |
+| レート制限（429）| リクエスト頻度が高すぎる | スクリプトが自動的にリトライするため、手動対応は不要 |
 
-## 快速验证
+## 動作確認
 
 ```bash
-cd ~/.claude/skills/create-colleague   # 或你的项目 .claude/skills/create-colleague
+cd ~/.claude/skills/create-colleague   # またはプロジェクトの .claude/skills/create-colleague
 
-# 测试飞书解析器
+# Feishu パーサーのテスト
 python3 tools/feishu_parser.py --help
 
-# 测试 Slack 采集器
+# Slack 収集ツールのテスト
 python3 tools/slack_auto_collector.py --help
 
-# 测试邮件解析器
+# メールパーサーのテスト
 python3 tools/email_parser.py --help
 
-# 列出已有同事 Skill
+# 既存の同僚 Skill を一覧表示
 python3 tools/skill_writer.py --action list --base-dir ./colleagues
 ```
 
 ---
 
-## 目录结构说明
+## ディレクトリ構成の説明
 
-本项目整个 repo 就是一个 skill 目录（AgentSkills 标准格式）：
+本プロジェクトはリポジトリ全体が skill ディレクトリです（AgentSkills 標準フォーマット）：
 
 ```
-colleague-skill/        ← clone 到 .claude/skills/create-colleague/
-├── SKILL.md            # skill 入口（官方 frontmatter）
-├── prompts/            # 分析和生成的 Prompt 模板
-├── tools/              # Python 工具脚本
-├── docs/               # 文档（PRD 等）
+colleague-skill/        ← .claude/skills/create-colleague/ にクローン
+├── SKILL.md            # skill エントリーポイント（公式 frontmatter）
+├── prompts/            # 分析・生成用の Prompt テンプレート
+├── tools/              # Python ツールスクリプト
+├── docs/               # ドキュメント（PRD 等）
 │
-└── colleagues/         # 生成的同事 Skill 存放处（.gitignore 排除）
+└── colleagues/         # 生成された同僚 Skill の保存先（.gitignore で除外）
     └── {slug}/
-        ├── SKILL.md            # 完整 Skill（Persona + Work）
-        ├── work.md             # 仅工作能力
-        ├── persona.md          # 仅人物性格
-        ├── meta.json           # 元数据
-        ├── versions/           # 历史版本
-        └── knowledge/          # 原始材料归档
+        ├── SKILL.md            # 完全な Skill（Persona + Work）
+        ├── work.md             # 仕事能力のみ
+        ├── persona.md          # 人物の性格のみ
+        ├── meta.json           # メタデータ
+        ├── versions/           # 履歴バージョン
+        └── knowledge/          # 元資料のアーカイブ
 ```

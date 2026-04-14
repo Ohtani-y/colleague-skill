@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-飞书消息导出 JSON 解析器
+Feishu メッセージエクスポート JSON 解析ツール
 
-支持的导出格式：
-1. 飞书官方导出（群聊记录）：通常为 JSON 数组，每条消息包含 sender、content、timestamp
-2. 手动整理的 TXT 格式（每行：时间 发送人：内容）
+対応エクスポートフォーマット：
+1. Feishu 公式エクスポート（グループチャット記録）：通常 JSON 配列、各メッセージに sender、content、timestamp を含む
+2. 手動整理された TXT フォーマット（各行：時間 送信者：内容）
 
-用法：
-    python feishu_parser.py --file messages.json --target "张三" --output output.txt
-    python feishu_parser.py --file messages.txt --target "张三" --output output.txt
+使い方：
+    python feishu_parser.py --file messages.json --target "田中太郎" --output output.txt
+    python feishu_parser.py --file messages.txt --target "田中太郎" --output output.txt
 """
 
 import json
@@ -20,17 +20,17 @@ from datetime import datetime
 
 
 def parse_feishu_json(file_path: str, target_name: str) -> list[dict]:
-    """解析飞书官方导出的 JSON 格式消息"""
+    """Feishu 公式エクスポートの JSON フォーマットメッセージを解析"""
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     messages = []
 
-    # 兼容多种 JSON 结构
+    # 複数の JSON 構造に対応
     if isinstance(data, list):
         raw_messages = data
     elif isinstance(data, dict):
-        # 可能在 data.messages 或 data.records 等字段下
+        # data.messages や data.records 等のフィールド配下にある可能性
         raw_messages = (
             data.get("messages")
             or data.get("records")
@@ -62,7 +62,7 @@ def parse_feishu_json(file_path: str, target_name: str) -> list[dict]:
             or ""
         )
 
-        # content 可能是嵌套结构
+        # content はネスト構造の可能性あり
         if isinstance(content, dict):
             content = content.get("text") or content.get("content") or str(content)
         if isinstance(content, list):
@@ -71,11 +71,11 @@ def parse_feishu_json(file_path: str, target_name: str) -> list[dict]:
                 for c in content
             )
 
-        # 过滤：只保留目标人发送的消息
+        # フィルター：対象者が送信したメッセージのみ保持
         if target_name and target_name not in str(sender):
             continue
 
-        # 过滤：跳过系统消息、表情包、撤回消息
+        # フィルター：システムメッセージ、スタンプ、取消メッセージをスキップ
         if not content or content.strip() in ["[图片]", "[文件]", "[撤回了一条消息]", "[语音]"]:
             continue
 
@@ -89,13 +89,13 @@ def parse_feishu_json(file_path: str, target_name: str) -> list[dict]:
 
 
 def parse_feishu_txt(file_path: str, target_name: str) -> list[dict]:
-    """解析手动整理的 TXT 格式消息（格式：时间 发送人：内容）"""
+    """手動整理された TXT フォーマットのメッセージを解析（フォーマット：時間 送信者：内容）"""
     messages = []
 
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    # 匹配格式：2024-01-01 10:00 张三：消息内容
+    # マッチフォーマット：2024-01-01 10:00 田中太郎：メッセージ内容
     pattern = re.compile(
         r"^(?P<time>\d{4}[-/]\d{1,2}[-/]\d{1,2}[\s\d:]*)\s+(?P<sender>.+?)[:：]\s*(?P<content>.+)$"
     )
@@ -122,7 +122,7 @@ def parse_feishu_txt(file_path: str, target_name: str) -> list[dict]:
                 "timestamp": timestamp,
             })
         else:
-            # 没有匹配格式，检查是否包含目标人名
+            # フォーマットにマッチしない場合、対象者の名前が含まれているか確認
             if target_name and target_name in line:
                 messages.append({
                     "sender": target_name,
@@ -135,10 +135,10 @@ def parse_feishu_txt(file_path: str, target_name: str) -> list[dict]:
 
 def extract_key_content(messages: list[dict]) -> dict:
     """
-    对消息进行分类提取，区分：
-    - 长消息（>50字）：可能包含观点、方案、技术判断
-    - 决策类回复：包含"同意""不行""觉得""建议"等关键词
-    - 日常沟通：其他消息
+    メッセージを分類して抽出：
+    - 長文メッセージ（>50文字）：意見、提案、技術判断を含む可能性
+    - 判断系リプライ：「同意」「不行」「觉得」「建议」などのキーワードを含む
+    - 日常コミュニケーション：その他のメッセージ
     """
     long_messages = []
     decision_messages = []
@@ -169,15 +169,15 @@ def extract_key_content(messages: list[dict]) -> dict:
 
 
 def format_output(target_name: str, extracted: dict) -> str:
-    """格式化输出，供 AI 分析使用"""
+    """AI 分析用にフォーマットして出力"""
     lines = [
-        f"# 飞书消息提取结果",
-        f"目标人物：{target_name}",
-        f"总消息数：{extracted['total_count']}",
+        f"# Feishu メッセージ抽出結果",
+        f"対象人物：{target_name}",
+        f"メッセージ総数：{extracted['total_count']}",
         "",
         "---",
         "",
-        "## 长消息（观点/方案类，权重最高）",
+        "## 長文メッセージ（意見/提案系、最高ウェイト）",
         "",
     ]
 
@@ -189,7 +189,7 @@ def format_output(target_name: str, extracted: dict) -> str:
     lines += [
         "---",
         "",
-        "## 决策类回复",
+        "## 判断系リプライ",
         "",
     ]
 
@@ -201,11 +201,11 @@ def format_output(target_name: str, extracted: dict) -> str:
     lines += [
         "---",
         "",
-        "## 日常沟通（风格参考）",
+        "## 日常コミュニケーション（スタイル参考）",
         "",
     ]
 
-    # 日常消息只取前 100 条，避免太长
+    # 日常メッセージは先頭 100 件のみ取得（長くなりすぎるのを防止）
     for msg in extracted["daily_messages"][:100]:
         ts = f"[{msg['timestamp']}] " if msg["timestamp"] else ""
         lines.append(f"{ts}{msg['content']}")
@@ -214,27 +214,27 @@ def format_output(target_name: str, extracted: dict) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="解析飞书消息导出文件")
-    parser.add_argument("--file", required=True, help="输入文件路径（.json 或 .txt）")
-    parser.add_argument("--target", required=True, help="目标人物姓名（只提取此人发出的消息）")
-    parser.add_argument("--output", default=None, help="输出文件路径（默认打印到 stdout）")
+    parser = argparse.ArgumentParser(description="Feishu メッセージエクスポートファイルを解析")
+    parser.add_argument("--file", required=True, help="入力ファイルパス（.json または .txt）")
+    parser.add_argument("--target", required=True, help="対象人物の氏名（この人が送信したメッセージのみ抽出）")
+    parser.add_argument("--output", default=None, help="出力ファイルパス（デフォルトは stdout に出力）")
 
     args = parser.parse_args()
 
     file_path = Path(args.file)
     if not file_path.exists():
-        print(f"错误：文件不存在 {file_path}", file=sys.stderr)
+        print(f"エラー：ファイルが存在しません {file_path}", file=sys.stderr)
         sys.exit(1)
 
-    # 根据文件类型选择解析器
+    # ファイルタイプに応じてパーサーを選択
     if file_path.suffix.lower() == ".json":
         messages = parse_feishu_json(str(file_path), args.target)
     else:
         messages = parse_feishu_txt(str(file_path), args.target)
 
     if not messages:
-        print(f"警告：未找到 '{args.target}' 发出的消息", file=sys.stderr)
-        print("提示：请检查目标姓名是否与文件中的发送人名称一致", file=sys.stderr)
+        print(f"警告：'{args.target}' が送信したメッセージが見つかりませんでした", file=sys.stderr)
+        print("ヒント：対象の氏名がファイル内の送信者名と一致しているか確認してください", file=sys.stderr)
 
     extracted = extract_key_content(messages)
     output = format_output(args.target, extracted)
@@ -242,7 +242,7 @@ def main():
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(output)
-        print(f"已输出到 {args.output}，共 {len(messages)} 条消息")
+        print(f"{args.output} に出力しました。合計 {len(messages)} 件のメッセージ")
     else:
         print(output)
 

@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """
-钉钉自动采集器
+DingTalk 自動収集ツール
 
-输入同事姓名，自动：
-  1. 搜索钉钉用户，获取 userId
-  2. 搜索他创建/编辑的文档和知识库内容
-  3. 拉取多维表格（如有）
-  4. 消息记录（API 不支持历史拉取，自动切换浏览器方案）
-  5. 输出统一格式，直接进 create-colleague 分析流程
+同僚の氏名を入力すると、自動で以下を実行：
+  1. DingTalk ユーザーを検索し、userId を取得
+  2. 作成/編集したドキュメントやナレッジベースの内容を検索
+  3. マルチディメンションテーブル（あれば）を取得
+  4. メッセージ履歴（API が履歴取得に対応しないため、自動でブラウザ方式に切替）
+  5. 統一フォーマットで出力し、create-colleague の分析フローへ直接投入
 
-钉钉限制说明：
-  钉钉 Open API 不提供历史消息拉取接口，
-  消息记录部分自动使用 Playwright 浏览器方案采集。
+DingTalk 制限事項：
+  DingTalk Open API は履歴メッセージ取得インターフェースを提供していないため、
+  メッセージ履歴の収集には Playwright ブラウザ方式を自動的に使用します。
 
-前置：
+前提条件：
   pip3 install requests playwright
   playwright install chromium
   python3 dingtalk_auto_collector.py --setup
 
-用法：
-  python3 dingtalk_auto_collector.py --name "张三" --output-dir ./knowledge/zhangsan
-  python3 dingtalk_auto_collector.py --name "张三" --skip-messages   # 跳过消息采集
-  python3 dingtalk_auto_collector.py --name "张三" --doc-limit 20
+使い方：
+  python3 dingtalk_auto_collector.py --name "田中太郎" --output-dir ./knowledge/tanaka
+  python3 dingtalk_auto_collector.py --name "田中太郎" --skip-messages   # メッセージ収集をスキップ
+  python3 dingtalk_auto_collector.py --name "田中太郎" --doc-limit 20
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ from typing import Optional
 try:
     import requests
 except ImportError:
-    print("错误：请先安装依赖：pip3 install requests", file=sys.stderr)
+    print("エラー：先に依存パッケージをインストールしてください：pip3 install requests", file=sys.stderr)
     sys.exit(1)
 
 
@@ -46,11 +46,11 @@ CONFIG_PATH = Path.home() / ".colleague-skill" / "dingtalk_config.json"
 API_BASE = "https://api.dingtalk.com"
 
 
-# ─── 配置 ────────────────────────────────────────────────────────────────────
+# ─── 設定 ────────────────────────────────────────────────────────────────────
 
 def load_config() -> dict:
     if not CONFIG_PATH.exists():
-        print("未找到配置，请先运行：python3 dingtalk_auto_collector.py --setup", file=sys.stderr)
+        print("設定が見つかりません。先に実行してください：python3 dingtalk_auto_collector.py --setup", file=sys.stderr)
         sys.exit(1)
     return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
@@ -61,21 +61,21 @@ def save_config(config: dict) -> None:
 
 
 def setup_config() -> None:
-    print("=== 钉钉自动采集配置 ===\n")
-    print("请前往 https://open-dev.dingtalk.com 创建企业内部应用，开通以下权限：\n")
-    print("  通讯录类：")
-    print("    qyapi_get_member_detail     查询用户详情")
-    print("    Contact.User.mobile         读取用户手机号（可选）")
+    print("=== DingTalk 自動収集設定 ===\n")
+    print("https://open-dev.dingtalk.com で企業内部アプリを作成し、以下の権限を開通してください：\n")
+    print("  連絡先系：")
+    print("    qyapi_get_member_detail     ユーザー詳細の照会")
+    print("    Contact.User.mobile         ユーザー電話番号の読取（任意）")
     print()
-    print("  消息类（可选，仅用于发消息，历史消息需浏览器方案）：")
-    print("    qyapi_robot_sendmsg         机器人发消息")
+    print("  メッセージ系（任意、メッセージ送信のみ。履歴メッセージはブラウザ方式が必要）：")
+    print("    qyapi_robot_sendmsg         ロボットメッセージ送信")
     print()
-    print("  文档类：")
-    print("    Doc.WorkSpace.READ          读取工作空间")
-    print("    Doc.File.READ               读取文件")
+    print("  ドキュメント系：")
+    print("    Doc.WorkSpace.READ          ワークスペースの読取")
+    print("    Doc.File.READ               ファイルの読取")
     print()
-    print("  多维表格：")
-    print("    Bitable.Record.READ         读取记录")
+    print("  マルチディメンションテーブル：")
+    print("    Bitable.Record.READ         レコードの読取")
     print()
 
     app_key = input("AppKey (ding_xxx): ").strip()
@@ -83,8 +83,8 @@ def setup_config() -> None:
 
     config = {"app_key": app_key, "app_secret": app_secret}
     save_config(config)
-    print(f"\n✅ 配置已保存到 {CONFIG_PATH}")
-    print("\n注意：消息记录采集需要 Playwright，请确认已安装：")
+    print(f"\n✅ 設定を {CONFIG_PATH} に保存しました")
+    print("\n注意：メッセージ履歴の収集には Playwright が必要です。インストール済みであることを確認してください：")
     print("  pip3 install playwright && playwright install chromium")
 
 
@@ -94,7 +94,7 @@ _token_cache: dict = {}
 
 
 def get_access_token(config: dict) -> str:
-    """获取钉钉 access_token，带缓存"""
+    """DingTalk access_token を取得（キャッシュ付き）"""
     now = time.time()
     if _token_cache.get("token") and _token_cache.get("expire", 0) > now + 60:
         return _token_cache["token"]
@@ -107,7 +107,7 @@ def get_access_token(config: dict) -> str:
     data = resp.json()
 
     if "accessToken" not in data:
-        print(f"获取 token 失败：{data}", file=sys.stderr)
+        print(f"トークン取得に失敗：{data}", file=sys.stderr)
         sys.exit(1)
 
     token = data["accessToken"]
@@ -138,11 +138,11 @@ def api_post(path: str, body: dict, config: dict) -> dict:
     return resp.json()
 
 
-# ─── 用户搜索 ─────────────────────────────────────────────────────────────────
+# ─── ユーザー検索 ─────────────────────────────────────────────────────────────
 
 def find_user(name: str, config: dict) -> Optional[dict]:
-    """通过姓名搜索钉钉用户"""
-    print(f"  搜索用户：{name} ...", file=sys.stderr)
+    """氏名で DingTalk ユーザーを検索"""
+    print(f"  ユーザー検索：{name} ...", file=sys.stderr)
 
     data = api_post(
         "/v1.0/contact/users/search",
@@ -153,26 +153,26 @@ def find_user(name: str, config: dict) -> Optional[dict]:
     users = data.get("list", []) or data.get("result", {}).get("list", [])
 
     if not users:
-        # 降级：通过部门遍历搜索
-        print("  API 搜索无结果，尝试遍历通讯录 ...", file=sys.stderr)
+        # フォールバック：部門を巡回して検索
+        print("  API 検索で結果なし、連絡先を巡回して検索中 ...", file=sys.stderr)
         users = search_users_by_dept(name, config)
 
     if not users:
-        print(f"  未找到用户：{name}", file=sys.stderr)
+        print(f"  ユーザーが見つかりません：{name}", file=sys.stderr)
         return None
 
     if len(users) == 1:
         u = users[0]
-        print(f"  找到用户：{u.get('name')}（{u.get('deptNameList', [''])[0] if isinstance(u.get('deptNameList'), list) else ''}）", file=sys.stderr)
+        print(f"  ユーザー発見：{u.get('name')}（{u.get('deptNameList', [''])[0] if isinstance(u.get('deptNameList'), list) else ''}）", file=sys.stderr)
         return u
 
-    print(f"\n  找到 {len(users)} 个结果，请选择：")
+    print(f"\n  {len(users)} 件の結果が見つかりました。選択してください：")
     for i, u in enumerate(users):
         dept = u.get("deptNameList", [""])
         dept_str = dept[0] if isinstance(dept, list) and dept else ""
         print(f"    [{i+1}] {u.get('name')}  {dept_str}  {u.get('unionId', '')}")
 
-    choice = input("\n  选择编号（默认 1）：").strip() or "1"
+    choice = input("\n  番号を選択（デフォルト 1）：").strip() or "1"
     try:
         return users[int(choice) - 1]
     except (ValueError, IndexError):
@@ -180,13 +180,13 @@ def find_user(name: str, config: dict) -> Optional[dict]:
 
 
 def search_users_by_dept(name: str, config: dict, dept_id: int = 1, depth: int = 0) -> list:
-    """递归遍历部门搜索用户（深度限制 3 层）"""
+    """部門を再帰的に巡回してユーザーを検索（深さ制限 3 階層）"""
     if depth > 3:
         return []
 
     results = []
 
-    # 获取部门用户列表
+    # 部門ユーザーリストを取得
     data = api_post(
         "/v1.0/contact/users/simplelist",
         {"deptId": dept_id, "cursor": 0, "size": 100},
@@ -195,11 +195,11 @@ def search_users_by_dept(name: str, config: dict, dept_id: int = 1, depth: int =
     users = data.get("list", [])
     for u in users:
         if name in u.get("name", ""):
-            # 获取详细信息
+            # 詳細情報を取得
             detail = api_get(f"/v1.0/contact/users/{u.get('userId')}", {}, config)
             results.append(detail.get("result", u))
 
-    # 获取子部门
+    # 子部門を取得
     sub_data = api_get(
         "/v1.0/contact/departments/listSubDepts",
         {"deptId": dept_id},
@@ -211,19 +211,19 @@ def search_users_by_dept(name: str, config: dict, dept_id: int = 1, depth: int =
     return results
 
 
-# ─── 文档采集 ─────────────────────────────────────────────────────────────────
+# ─── ドキュメント収集 ─────────────────────────────────────────────────────────
 
 def list_workspaces(config: dict) -> list:
-    """获取所有工作空间"""
+    """全ワークスペースを取得"""
     data = api_get("/v1.0/doc/workspaces", {"maxResults": 50}, config)
     return data.get("workspaceModels", []) or data.get("result", {}).get("workspaceModels", [])
 
 
 def search_docs_by_user(user_id: str, name: str, doc_limit: int, config: dict) -> list:
-    """搜索用户创建的文档"""
-    print(f"  搜索 {name} 的文档 ...", file=sys.stderr)
+    """ユーザーが作成したドキュメントを検索"""
+    print(f"  {name} のドキュメントを検索中 ...", file=sys.stderr)
 
-    # 方式一：全局搜索
+    # 方法1：グローバル検索
     data = api_post(
         "/v1.0/doc/search",
         {
@@ -239,11 +239,11 @@ def search_docs_by_user(user_id: str, name: str, doc_limit: int, config: dict) -
 
     for item in items:
         creator_id = item.get("creatorId", "") or item.get("creator", {}).get("userId", "")
-        # 过滤：只保留目标用户创建的
+        # フィルター：対象ユーザーが作成したもののみ保持
         if user_id and creator_id and creator_id != user_id:
             continue
         docs.append({
-            "title": item.get("title", "无标题"),
+            "title": item.get("title", "無題"),
             "docId": item.get("docId", ""),
             "spaceId": item.get("spaceId", ""),
             "type": item.get("docType", ""),
@@ -252,10 +252,10 @@ def search_docs_by_user(user_id: str, name: str, doc_limit: int, config: dict) -
         })
 
     if not docs:
-        # 方式二：遍历工作空间找文档
-        print("  搜索无结果，遍历工作空间 ...", file=sys.stderr)
+        # 方法2：ワークスペースを巡回してドキュメントを探す
+        print("  検索結果なし、ワークスペースを巡回中 ...", file=sys.stderr)
         workspaces = list_workspaces(config)
-        for ws in workspaces[:5]:  # 最多查 5 个空间
+        for ws in workspaces[:5]:  # 最大 5 スペースを検索
             ws_id = ws.get("spaceId") or ws.get("workspaceId")
             if not ws_id:
                 continue
@@ -269,7 +269,7 @@ def search_docs_by_user(user_id: str, name: str, doc_limit: int, config: dict) -
                 if user_id and creator_id and creator_id != user_id:
                     continue
                 docs.append({
-                    "title": f.get("fileName", "无标题"),
+                    "title": f.get("fileName", "無題"),
                     "docId": f.get("docId", ""),
                     "spaceId": ws_id,
                     "type": f.get("docType", ""),
@@ -277,13 +277,13 @@ def search_docs_by_user(user_id: str, name: str, doc_limit: int, config: dict) -
                     "creator": name,
                 })
 
-    print(f"  找到 {len(docs)} 篇文档", file=sys.stderr)
+    print(f"  {len(docs)} 件のドキュメントが見つかりました", file=sys.stderr)
     return docs[:doc_limit]
 
 
 def fetch_doc_content(doc_id: str, space_id: str, config: dict) -> str:
-    """拉取单篇文档的文本内容"""
-    # 方式一：直接获取文档内容
+    """単一ドキュメントのテキスト内容を取得"""
+    # 方法1：ドキュメント内容を直接取得
     data = api_get(
         f"/v1.0/doc/workspaces/{space_id}/files/{doc_id}/content",
         {},
@@ -301,7 +301,7 @@ def fetch_doc_content(doc_id: str, space_id: str, config: dict) -> str:
     if content:
         return content
 
-    # 方式二：获取下载链接后下载
+    # 方法2：ダウンロードリンクを取得してダウンロード
     dl_data = api_get(
         f"/v1.0/doc/workspaces/{space_id}/files/{doc_id}/download",
         {},
@@ -319,23 +319,23 @@ def fetch_doc_content(doc_id: str, space_id: str, config: dict) -> str:
 
 
 def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
-    """采集目标用户的文档"""
+    """対象ユーザーのドキュメントを収集"""
     user_id = user.get("userId", "")
     name = user.get("name", "")
 
     docs = search_docs_by_user(user_id, name, doc_limit, config)
     if not docs:
-        return f"# 文档内容\n\n未找到 {name} 相关文档\n"
+        return f"# ドキュメント内容\n\n{name} に関連するドキュメントが見つかりませんでした\n"
 
     lines = [
-        "# 文档内容（钉钉自动采集）",
-        f"目标：{name}",
-        f"共 {len(docs)} 篇",
+        "# ドキュメント内容（DingTalk 自動収集）",
+        f"対象：{name}",
+        f"合計 {len(docs)} 件",
         "",
     ]
 
     for doc in docs:
-        title = doc.get("title", "无标题")
+        title = doc.get("title", "無題")
         doc_id = doc.get("docId", "")
         space_id = doc.get("spaceId", "")
         url = doc.get("url", "")
@@ -343,18 +343,18 @@ def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
         if not doc_id or not space_id:
             continue
 
-        print(f"  拉取文档：{title} ...", file=sys.stderr)
+        print(f"  ドキュメント取得中：{title} ...", file=sys.stderr)
         content = fetch_doc_content(doc_id, space_id, config)
 
         if not content or len(content.strip()) < 20:
-            print(f"    内容为空，跳过", file=sys.stderr)
+            print(f"    内容が空のため、スキップします", file=sys.stderr)
             continue
 
         lines += [
             "---",
             f"## 《{title}》",
-            f"链接：{url}",
-            f"创建人：{doc.get('creator', '')}",
+            f"リンク：{url}",
+            f"作成者：{doc.get('creator', '')}",
             "",
             content.strip(),
             "",
@@ -363,11 +363,11 @@ def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
     return "\n".join(lines)
 
 
-# ─── 多维表格 ─────────────────────────────────────────────────────────────────
+# ─── マルチディメンションテーブル ─────────────────────────────────────────────
 
 def search_bitables(user_id: str, name: str, config: dict) -> list:
-    """搜索目标用户的多维表格"""
-    print(f"  搜索 {name} 的多维表格 ...", file=sys.stderr)
+    """対象ユーザーのマルチディメンションテーブルを検索"""
+    print(f"  {name} のマルチディメンションテーブルを検索中 ...", file=sys.stderr)
 
     data = api_post(
         "/v1.0/doc/search",
@@ -384,13 +384,13 @@ def search_bitables(user_id: str, name: str, config: dict) -> list:
             continue
         tables.append(item)
 
-    print(f"  找到 {len(tables)} 个多维表格", file=sys.stderr)
+    print(f"  {len(tables)} 件のマルチディメンションテーブルが見つかりました", file=sys.stderr)
     return tables
 
 
 def fetch_bitable_content(base_id: str, config: dict) -> str:
-    """拉取多维表格内容"""
-    # 获取所有 sheet
+    """マルチディメンションテーブルの内容を取得"""
+    # 全シートを取得
     sheets_data = api_get(
         f"/v1.0/bitable/bases/{base_id}/sheets",
         {},
@@ -399,14 +399,14 @@ def fetch_bitable_content(base_id: str, config: dict) -> str:
     sheets = sheets_data.get("sheets", []) or sheets_data.get("result", {}).get("sheets", [])
 
     if not sheets:
-        return "（多维表格为空或无权限）\n"
+        return "（マルチディメンションテーブルが空か権限がありません）\n"
 
     lines = []
     for sheet in sheets:
         sheet_id = sheet.get("sheetId") or sheet.get("id")
         sheet_name = sheet.get("name", sheet_id)
 
-        # 获取字段
+        # フィールドを取得
         fields_data = api_get(
             f"/v1.0/bitable/bases/{base_id}/sheets/{sheet_id}/fields",
             {"maxResults": 100},
@@ -414,7 +414,7 @@ def fetch_bitable_content(base_id: str, config: dict) -> str:
         )
         fields = [f.get("name", "") for f in fields_data.get("fields", [])]
 
-        # 获取记录
+        # レコードを取得
         records_data = api_get(
             f"/v1.0/bitable/bases/{base_id}/sheets/{sheet_id}/records",
             {"maxResults": 200},
@@ -422,7 +422,7 @@ def fetch_bitable_content(base_id: str, config: dict) -> str:
         )
         records = records_data.get("records", []) or records_data.get("result", {}).get("records", [])
 
-        lines.append(f"### 表：{sheet_name}")
+        lines.append(f"### テーブル：{sheet_name}")
         lines.append("")
 
         if fields:
@@ -448,25 +448,25 @@ def fetch_bitable_content(base_id: str, config: dict) -> str:
 
 
 def collect_bitables(user: dict, config: dict) -> str:
-    """采集目标用户的多维表格"""
+    """対象ユーザーのマルチディメンションテーブルを収集"""
     user_id = user.get("userId", "")
     name = user.get("name", "")
 
     tables = search_bitables(user_id, name, config)
     if not tables:
-        return f"# 多维表格\n\n未找到 {name} 的多维表格\n"
+        return f"# マルチディメンションテーブル\n\n{name} のマルチディメンションテーブルが見つかりませんでした\n"
 
     lines = [
-        "# 多维表格（钉钉自动采集）",
-        f"目标：{name}",
-        f"共 {len(tables)} 个",
+        "# マルチディメンションテーブル（DingTalk 自動収集）",
+        f"対象：{name}",
+        f"合計 {len(tables)} 件",
         "",
     ]
 
     for t in tables:
-        title = t.get("title", "无标题")
+        title = t.get("title", "無題")
         doc_id = t.get("docId", "")
-        print(f"  拉取多维表格：{title} ...", file=sys.stderr)
+        print(f"  マルチディメンションテーブル取得中：{title} ...", file=sys.stderr)
 
         content = fetch_bitable_content(doc_id, config)
         lines += [
@@ -479,7 +479,7 @@ def collect_bitables(user: dict, config: dict) -> str:
     return "\n".join(lines)
 
 
-# ─── 消息记录（浏览器方案）────────────────────────────────────────────────────
+# ─── メッセージ履歴（ブラウザ方式）────────────────────────────────────────────
 
 def get_default_chrome_profile() -> str:
     system = platform.system()
@@ -499,20 +499,20 @@ def collect_messages_browser(
     chrome_profile: Optional[str],
     headless: bool,
 ) -> str:
-    """通过 Playwright 浏览器抓取钉钉网页版消息记录"""
+    """Playwright ブラウザで DingTalk Web 版のメッセージ履歴を取得"""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
         return (
-            "# 消息记录\n\n"
-            "⚠️  未安装 Playwright，无法采集消息记录。\n"
-            "请运行：pip3 install playwright && playwright install chromium\n"
+            "# メッセージ履歴\n\n"
+            "⚠️  Playwright がインストールされていないため、メッセージ履歴を収集できません。\n"
+            "以下を実行してください：pip3 install playwright && playwright install chromium\n"
         )
 
     import re
 
     profile = chrome_profile or get_default_chrome_profile()
-    print(f"  启动浏览器抓取钉钉消息（{'无头' if headless else '有界面'}）...", file=sys.stderr)
+    print(f"  ブラウザを起動して DingTalk メッセージを取得中（{'ヘッドレス' if headless else 'GUI'}）...", file=sys.stderr)
 
     messages = []
 
@@ -526,28 +526,28 @@ def collect_messages_browser(
                 viewport={"width": 1280, "height": 900},
             )
         except Exception as e:
-            return f"# 消息记录\n\n⚠️  无法启动浏览器：{e}\n"
+            return f"# メッセージ履歴\n\n⚠️  ブラウザの起動に失敗しました：{e}\n"
 
         page = ctx.new_page()
 
-        # 打开钉钉网页版
+        # DingTalk Web 版を開く
         page.goto("https://im.dingtalk.com", wait_until="domcontentloaded", timeout=20000)
         time.sleep(3)
 
-        # 检查登录状态
+        # ログイン状態を確認
         if "login" in page.url.lower() or page.query_selector(".login-wrap"):
             if headless:
                 ctx.close()
                 return (
-                    "# 消息记录\n\n"
-                    "⚠️  检测到未登录。请用 --show-browser 参数重新运行，在弹出窗口中登录钉钉。\n"
+                    "# メッセージ履歴\n\n"
+                    "⚠️  未ログイン状態が検出されました。--show-browser パラメータで再実行し、表示されるウィンドウで DingTalk にログインしてください。\n"
                 )
-            print("  请在浏览器中登录钉钉，登录完成后按回车继续...", file=sys.stderr)
+            print("  ブラウザで DingTalk にログインし、完了後に Enter キーを押してください...", file=sys.stderr)
             input()
 
-        # 搜索目标联系人的消息
+        # 対象連絡先のメッセージを検索
         try:
-            # 点击搜索框
+            # 検索ボックスをクリック
             search_selectors = [
                 '[placeholder*="搜索"]',
                 '.search-input',
@@ -563,7 +563,7 @@ def collect_messages_browser(
                     time.sleep(2)
                     break
 
-            # 点击第一个结果
+            # 最初の結果をクリック
             result_selectors = [
                 '.search-result-item',
                 '.contact-item',
@@ -576,13 +576,13 @@ def collect_messages_browser(
                     time.sleep(2)
                     break
         except Exception as e:
-            print(f"  自动导航失败：{e}", file=sys.stderr)
+            print(f"  自動ナビゲーションに失敗：{e}", file=sys.stderr)
             if not headless:
-                print(f"  请手动打开与「{name}」的对话，然后按回车继续...", file=sys.stderr)
+                print(f"  「{name}」との会話を手動で開き、Enter キーを押して続行してください...", file=sys.stderr)
                 input()
 
-        # 向上滚动加载历史消息
-        print("  加载历史消息 ...", file=sys.stderr)
+        # 上にスクロールして履歴メッセージを読み込み
+        print("  履歴メッセージを読み込み中 ...", file=sys.stderr)
         for _ in range(15):
             page.keyboard.press("Control+Home")
             time.sleep(1)
@@ -591,7 +591,7 @@ def collect_messages_browser(
 
         time.sleep(2)
 
-        # 提取消息
+        # メッセージを抽出
         raw_messages = page.evaluate(f"""
             () => {{
                 const target = "{name}";
@@ -636,38 +636,38 @@ def collect_messages_browser(
 
     if not messages:
         return (
-            "# 消息记录\n\n"
-            f"⚠️  未能自动提取 {name} 的消息。\n"
-            "可能原因：钉钉网页版 DOM 结构变化，或未找到对话。\n"
-            "建议手动截图聊天记录后上传。\n"
+            "# メッセージ履歴\n\n"
+            f"⚠️  {name} のメッセージを自動抽出できませんでした。\n"
+            "原因として、DingTalk Web 版の DOM 構造の変更、または会話が見つからなかった可能性があります。\n"
+            "チャット履歴を手動でスクリーンショットしてアップロードすることを推奨します。\n"
         )
 
     long_msgs = [m for m in messages if len(m.get("content", "")) > 50]
     short_msgs = [m for m in messages if len(m.get("content", "")) <= 50]
 
     lines = [
-        "# 消息记录（钉钉浏览器采集）",
-        f"目标：{name}",
-        f"共 {len(messages)} 条",
-        "注意：钉钉 API 不支持历史消息拉取，本内容通过浏览器采集",
+        "# メッセージ履歴（DingTalk ブラウザ収集）",
+        f"対象：{name}",
+        f"合計 {len(messages)} 件",
+        "注意：DingTalk API は履歴メッセージ取得に対応していないため、本内容はブラウザ経由で収集されました",
         "",
         "---",
         "",
-        "## 长消息（观点/决策/技术类）",
+        "## 長文メッセージ（意見/判断/技術系）",
         "",
     ]
     for m in long_msgs:
         lines.append(f"[{m.get('time', '')}] {m.get('content', '')}")
         lines.append("")
 
-    lines += ["---", "", "## 日常消息（风格参考）", ""]
+    lines += ["---", "", "## 日常メッセージ（スタイル参考）", ""]
     for m in short_msgs[:300]:
         lines.append(f"[{m.get('time', '')}] {m.get('content', '')}")
 
     return "\n".join(lines)
 
 
-# ─── 主流程 ───────────────────────────────────────────────────────────────────
+# ─── メインフロー ─────────────────────────────────────────────────────────────
 
 def collect_all(
     name: str,
@@ -682,54 +682,54 @@ def collect_all(
     output_dir.mkdir(parents=True, exist_ok=True)
     results = {}
 
-    print(f"\n🔍 开始采集（钉钉）：{name}\n", file=sys.stderr)
+    print(f"\n🔍 収集開始（DingTalk）：{name}\n", file=sys.stderr)
 
-    # Step 1: 搜索用户
+    # Step 1: ユーザーを検索
     user = find_user(name, config)
     if not user:
-        print(f"❌ 未找到用户：{name}", file=sys.stderr)
+        print(f"❌ ユーザーが見つかりません：{name}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"  用户 ID：{user.get('userId', '')}  部门：{user.get('deptNameList', [''])[0] if isinstance(user.get('deptNameList'), list) and user.get('deptNameList') else ''}", file=sys.stderr)
+    print(f"  ユーザー ID：{user.get('userId', '')}  部門：{user.get('deptNameList', [''])[0] if isinstance(user.get('deptNameList'), list) and user.get('deptNameList') else ''}", file=sys.stderr)
 
-    # Step 2: 文档
-    print(f"\n📄 采集文档（上限 {doc_limit} 篇）...", file=sys.stderr)
+    # Step 2: ドキュメント
+    print(f"\n📄 ドキュメント収集中（上限 {doc_limit} 件）...", file=sys.stderr)
     try:
         doc_content = collect_docs(user, doc_limit, config)
         doc_path = output_dir / "docs.txt"
         doc_path.write_text(doc_content, encoding="utf-8")
         results["docs"] = str(doc_path)
-        print(f"  ✅ 文档 → {doc_path}", file=sys.stderr)
+        print(f"  ✅ ドキュメント → {doc_path}", file=sys.stderr)
     except Exception as e:
-        print(f"  ⚠️  文档采集失败：{e}", file=sys.stderr)
+        print(f"  ⚠️  ドキュメント収集に失敗：{e}", file=sys.stderr)
 
-    # Step 3: 多维表格
-    print(f"\n📊 采集多维表格 ...", file=sys.stderr)
+    # Step 3: マルチディメンションテーブル
+    print(f"\n📊 マルチディメンションテーブル収集中 ...", file=sys.stderr)
     try:
         bitable_content = collect_bitables(user, config)
         bt_path = output_dir / "bitables.txt"
         bt_path.write_text(bitable_content, encoding="utf-8")
         results["bitables"] = str(bt_path)
-        print(f"  ✅ 多维表格 → {bt_path}", file=sys.stderr)
+        print(f"  ✅ マルチディメンションテーブル → {bt_path}", file=sys.stderr)
     except Exception as e:
-        print(f"  ⚠️  多维表格采集失败：{e}", file=sys.stderr)
+        print(f"  ⚠️  マルチディメンションテーブルの収集に失敗：{e}", file=sys.stderr)
 
-    # Step 4: 消息记录（浏览器方案）
+    # Step 4: メッセージ履歴（ブラウザ方式）
     if not skip_messages:
-        print(f"\n📨 采集消息记录（浏览器方案，上限 {msg_limit} 条）...", file=sys.stderr)
-        print(f"  ℹ️  钉钉 API 不支持历史消息拉取，自动切换浏览器方案", file=sys.stderr)
+        print(f"\n📨 メッセージ履歴を収集中（ブラウザ方式、上限 {msg_limit} 件）...", file=sys.stderr)
+        print(f"  ℹ️  DingTalk API は履歴メッセージ取得に対応していないため、自動でブラウザ方式に切り替えます", file=sys.stderr)
         try:
             msg_content = collect_messages_browser(name, msg_limit, chrome_profile, headless)
             msg_path = output_dir / "messages.txt"
             msg_path.write_text(msg_content, encoding="utf-8")
             results["messages"] = str(msg_path)
-            print(f"  ✅ 消息记录 → {msg_path}", file=sys.stderr)
+            print(f"  ✅ メッセージ履歴 → {msg_path}", file=sys.stderr)
         except Exception as e:
-            print(f"  ⚠️  消息采集失败：{e}", file=sys.stderr)
+            print(f"  ⚠️  メッセージ収集に失敗：{e}", file=sys.stderr)
     else:
-        print(f"\n📨 跳过消息采集（--skip-messages）", file=sys.stderr)
+        print(f"\n📨 メッセージ収集をスキップ（--skip-messages）", file=sys.stderr)
 
-    # 写摘要
+    # サマリーを書き込み
     summary = {
         "name": name,
         "user_id": user.get("userId", ""),
@@ -737,27 +737,27 @@ def collect_all(
         "department": user.get("deptNameList", []),
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "files": results,
-        "notes": "消息记录通过浏览器采集，钉钉 API 不支持历史消息拉取",
+        "notes": "メッセージ履歴はブラウザ経由で収集。DingTalk API は履歴メッセージ取得に非対応",
     }
     (output_dir / "collection_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2)
     )
 
-    print(f"\n✅ 采集完成 → {output_dir}", file=sys.stderr)
-    print(f"   文件：{', '.join(results.keys())}", file=sys.stderr)
+    print(f"\n✅ 収集完了 → {output_dir}", file=sys.stderr)
+    print(f"   ファイル：{', '.join(results.keys())}", file=sys.stderr)
     return results
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="钉钉数据自动采集器")
-    parser.add_argument("--setup", action="store_true", help="初始化配置")
-    parser.add_argument("--name", help="同事姓名")
-    parser.add_argument("--output-dir", default=None, help="输出目录")
-    parser.add_argument("--msg-limit", type=int, default=500, help="最多采集消息条数（默认 500）")
-    parser.add_argument("--doc-limit", type=int, default=20, help="最多采集文档篇数（默认 20）")
-    parser.add_argument("--skip-messages", action="store_true", help="跳过消息记录采集")
-    parser.add_argument("--chrome-profile", default=None, help="Chrome Profile 路径")
-    parser.add_argument("--show-browser", action="store_true", help="显示浏览器窗口（调试/首次登录）")
+    parser = argparse.ArgumentParser(description="DingTalk データ自動収集ツール")
+    parser.add_argument("--setup", action="store_true", help="設定を初期化")
+    parser.add_argument("--name", help="同僚の氏名")
+    parser.add_argument("--output-dir", default=None, help="出力ディレクトリ")
+    parser.add_argument("--msg-limit", type=int, default=500, help="最大メッセージ収集件数（デフォルト 500）")
+    parser.add_argument("--doc-limit", type=int, default=20, help="最大ドキュメント収集件数（デフォルト 20）")
+    parser.add_argument("--skip-messages", action="store_true", help="メッセージ履歴の収集をスキップ")
+    parser.add_argument("--chrome-profile", default=None, help="Chrome Profile パス")
+    parser.add_argument("--show-browser", action="store_true", help="ブラウザウィンドウを表示（デバッグ/初回ログイン）")
 
     args = parser.parse_args()
 
@@ -766,7 +766,7 @@ def main() -> None:
         return
 
     if not args.name:
-        parser.error("请提供 --name")
+        parser.error("--name を指定してください")
 
     config = load_config()
     output_dir = Path(args.output_dir) if args.output_dir else Path(f"./knowledge/{args.name}")

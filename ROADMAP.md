@@ -1,25 +1,25 @@
 <div align="center">
 
-# dot-skill Roadmap
+# dot-skill ロードマップ
 
-### From colleague.skill to dot-skill — Distill anyone into an AI Skill
-
-<br>
-
-We started with a simple idea: **when a colleague leaves, their knowledge walks out the door. Can we keep it?**
-
-In two weeks, 13,000+ people gave us the answer.
-
-But the community showed us this goes far beyond colleagues —
-you distilled professors, exes, yourselves, even fictional characters.
-
-**So we decided to evolve colleague.skill into dot-skill.**
-
-Anyone can become a `.skill`.
+### colleague.skill から dot-skill へ — 誰でもAIスキルに蒸留できる
 
 <br>
 
-*Last updated: 2026-04-13*
+私たちはシンプルなアイデアから始めました：**同僚が辞めると、その知識も一緒に出ていく。それを残すことはできないか？**
+
+2週間で13,000人以上がその答えをくれました。
+
+しかしコミュニティは、これが同僚にとどまらないことを示してくれました —
+教授、元恋人、自分自身、さらにはフィクションのキャラクターまで蒸留する人たちが現れたのです。
+
+**そこで、colleague.skill を dot-skill へと進化させることにしました。**
+
+誰でも `.skill` になれる。
+
+<br>
+
+*最終更新日: 2026-04-13*
 
 [**中文**](docs/lang/ROADMAP_ZH.md) · [**Español**](docs/lang/ROADMAP_ES.md) · [**Deutsch**](docs/lang/ROADMAP_DE.md) · [**日本語**](docs/lang/ROADMAP_JA.md) · [**Русский**](docs/lang/ROADMAP_RU.md) · [**Português**](docs/lang/ROADMAP_PT.md)
 
@@ -27,122 +27,122 @@ Anyone can become a `.skill`.
 
 ---
 
-## What's Done (v1.0)
+## 完了済み (v1.0)
 
-| Capability | Status |
-|------------|:------:|
-| `/create-colleague` full creation workflow | Done |
-| Feishu auto-collection (messages + docs + spreadsheets) | Done |
-| DingTalk auto-collection | Done |
-| Slack auto-collection | Done |
-| WeChat chat history (SQLite export) | Done |
-| Email / PDF / image / Markdown import | Done |
-| Work Skill + Persona dual-model architecture | Done |
-| Conversation corrections & incremental evolution | Done |
-| Version control & rollback | Done |
-| [Community Gallery](https://titanwings.github.io/colleague-skill-site/) with 99+ skills | Done |
-
----
-
-## What's Next
-
-### Phase 1 — Community Building
-
-> 13k stars shouldn't just be a number. We want everyone to be part of this.
-
-**What you'll see:**
-
-- **GitHub Discussions** — no more chatting in Issues, we'll have dedicated discussion spaces
-- **`CONTRIBUTING.md`** — clear contribution guide, beginner-friendly
-- **`good-first-issue` labels** — starter tasks for new contributors
-- **v1.0.0 official release** — first versioned Release, no more "just pull from main"
-- **Public roadmap board** — you're reading it now, but we'll also have a live GitHub Projects version
-
-**You can help:** translate docs, submit your .skill, test on Windows, help triage Issues
+| 機能 | 状態 |
+|------|:----:|
+| `/create-colleague` フル作成ワークフロー | 完了 |
+| Feishu 自動収集（メッセージ + ドキュメント + スプレッドシート） | 完了 |
+| DingTalk 自動収集 | 完了 |
+| Slack 自動収集 | 完了 |
+| WeChat チャット履歴（SQLite エクスポート） | 完了 |
+| メール / PDF / 画像 / Markdown インポート | 完了 |
+| ワークスキル + ペルソナ デュアルモデルアーキテクチャ | 完了 |
+| 会話修正 & インクリメンタル進化 | 完了 |
+| バージョン管理 & ロールバック | 完了 |
+| [コミュニティギャラリー](https://titanwings.github.io/colleague-skill-site/) 99以上のスキル | 完了 |
 
 ---
 
-### Phase 2 — dot-skill: Beyond Colleagues
+## 今後の予定
 
-> colleague.skill was the beginning. dot-skill is the future.
+### フェーズ 1 — コミュニティ構築
 
-**Key changes:**
+> 13,000スターはただの数字であってはならない。みんなにこの一員になってほしい。
 
-- **`/create-skill` universal entry** — no longer limited to "create a colleague", distill anyone
-  - `/create-colleague` for coworkers, mentors, interns
-  - `/create-ex` for exes, old friends, lost connections
-  - `/create-icon` for celebrities, historical figures
-  - or... distill yourself
-- **Gallery category upgrade** — Colleague / Celebrity / Relationship / Character / Self / Meta-Skill, browse by type
-- **More data sources**
-  - WeCom (WeChat Work) support
-  - iMessage auto-read
-  - Windows compatibility fix
+**実現すること：**
 
-**You can help:** submit person-type requests, build new data source collectors, join Gallery design discussions
+- **GitHub Discussions** — Issueでのやり取りは卒業、専用のディスカッションスペースを用意
+- **`CONTRIBUTING.md`** — 明確なコントリビューションガイド、初心者にもやさしい設計
+- **`good-first-issue` ラベル** — 新規コントリビューター向けのスターター課題
+- **v1.0.0 公式リリース** — 初のバージョン付きリリース、もう「mainからpullして」とは言わない
+- **公開ロードマップボード** — 今まさに読んでいるこれに加え、GitHub Projects のライブ版も用意
+
+**あなたにできること：** ドキュメントの翻訳、.skill の投稿、Windows でのテスト、Issue のトリアージ支援
 
 ---
 
-### Phase 3 — Skill Ecosystem
+### フェーズ 2 — dot-skill：同僚を超えて
 
-> When one person becomes a skill, can a group of people become a team?
+> colleague.skill は始まりに過ぎない。dot-skill が未来だ。
 
-**We're exploring:**
+**主な変更点：**
 
-- **Multi-skill collaboration** — `/meeting @zhangsan @lisi @wangwu`, three personas discuss a topic together
-- **Relationship graph** — define persona dynamics: who partners with whom, where the tension lies
-- **One-click install** — install community skills like plugins
-- **Active evolution** — skills periodically absorb new data sources, staying up to date
+- **`/create-skill` 統一エントリー** — 「同僚を作成」に限定されず、誰でも蒸留可能に
+  - `/create-colleague` 同僚、メンター、インターン向け
+  - `/create-ex` 元恋人、旧友、失われたつながり向け
+  - `/create-icon` 著名人、歴史上の人物向け
+  - もしくは… 自分自身を蒸留
+- **ギャラリーカテゴリの拡充** — 同僚 / 著名人 / 人間関係 / キャラクター / セルフ / メタスキル、タイプ別に閲覧可能
+- **データソースの追加**
+  - WeCom（WeChat Work）対応
+  - iMessage 自動読み取り
+  - Windows 互換性の修正
 
-**You can help:** propose your ideal skill composition scenarios, join distribution mechanism design discussions
-
----
-
-### Phase 4 — Multimodal: Bring Them to Life
-
-> Right now, .skills can only talk. We want them to send photos, stickers, speak in their voice, and eventually make videos.
-
-**Step 1: Visual expression**
-- Auto-send persona-style stickers and memes in conversation
-- Generate "life photos" in their style — what would they post today?
-- Each skill gets its own sticker pack and image assets
-
-**Step 2: Voice**
-- Speak in their voice — clone from meeting recordings, voice messages
-- Send voice replies directly in chat
-
-**Step 3: Video (exploratory)**
-- Short-form "a day in their life" generation
-- Digital human / animated avatar
-
-**You can help:** share multimodal use case ideas, contribute sticker assets, test voice cloning
+**あなたにできること：** 人物タイプのリクエスト投稿、新しいデータソースコレクターの開発、ギャラリーデザインの議論への参加
 
 ---
 
-## Get Involved
+### フェーズ 3 — スキルエコシステム
 
-| How | Where |
-|-----|-------|
-| Submit your .skill | [Gallery PR](https://titanwings.github.io/colleague-skill-site/) |
-| Discuss & propose | [GitHub Discussions](https://github.com/titanwings/colleague-skill/discussions) (coming soon) |
-| Chat in real time | [Discord](https://discord.gg/aRjmJBdK) |
-| Report bugs | [Issue](https://github.com/titanwings/colleague-skill/issues/new) |
-| Contribute code | Look for `good-first-issue` labels, or just open a PR |
+> 一人がスキルになれるなら、グループはチームになれるだろうか？
 
-**We especially need:**
-- Windows users — help us test and fix compatibility issues
-- Multilingual speakers — help translate documentation
-- Data source developers — build new collectors (WeCom, Notion, Google Docs...)
-- Designers — the Gallery and website need your eye
+**検討中：**
+
+- **マルチスキルコラボレーション** — `/meeting @zhangsan @lisi @wangwu`、3つのペルソナが一つのテーマを議論
+- **リレーションシップグラフ** — ペルソナの関係性を定義：誰が誰と組むか、どこに緊張関係があるか
+- **ワンクリックインストール** — コミュニティスキルをプラグインのようにインストール
+- **アクティブ進化** — スキルが定期的に新しいデータソースを取り込み、常に最新の状態を維持
+
+**あなたにできること：** 理想的なスキル構成シナリオの提案、配布メカニズムの設計議論への参加
+
+---
+
+### フェーズ 4 — マルチモーダル：命を吹き込む
+
+> 今の .skill は話すことしかできない。写真やスタンプを送り、声で話し、いずれは動画も作れるようにしたい。
+
+**ステップ 1：ビジュアル表現**
+- 会話中にペルソナ風のスタンプやミームを自動送信
+- そのスタイルの「ライフフォト」を生成 — 今日なら何を投稿するだろう？
+- 各スキルに専用のスタンプパックと画像アセットを付与
+
+**ステップ 2：音声**
+- その人の声で話す — 会議の録音やボイスメッセージからクローン
+- チャットで音声返信を直接送信
+
+**ステップ 3：動画（探索段階）**
+- ショート動画「その人の一日」を生成
+- デジタルヒューマン / アニメーションアバター
+
+**あなたにできること：** マルチモーダルのユースケースアイデアの共有、スタンプアセットの提供、ボイスクローニングのテスト
+
+---
+
+## 参加するには
+
+| 方法 | リンク |
+|------|--------|
+| .skill を投稿する | [ギャラリー PR](https://titanwings.github.io/colleague-skill-site/) |
+| 議論・提案する | [GitHub Discussions](https://github.com/titanwings/colleague-skill/discussions)（近日公開） |
+| リアルタイムで会話する | [Discord](https://discord.gg/aRjmJBdK) |
+| バグを報告する | [Issue](https://github.com/titanwings/colleague-skill/issues/new) |
+| コードで貢献する | `good-first-issue` ラベルを探すか、PRを直接オープン |
+
+**特に求めている人材：**
+- Windows ユーザー — 互換性の問題をテスト・修正する協力
+- 多言語話者 — ドキュメントの翻訳支援
+- データソース開発者 — 新しいコレクターの開発（WeCom, Notion, Google Docs...）
+- デザイナー — ギャラリーとウェブサイトにあなたのセンスを
 
 ---
 
 <div align="center">
 
-**This roadmap belongs to the community. Priorities shift based on your feedback.**
+**このロードマップはコミュニティのものです。優先順位はみなさんのフィードバックによって変わります。**
 
-Have ideas? Come to [Discord](https://discord.gg/aRjmJBdK) or start a Discussion.
+アイデアがありますか？ [Discord](https://discord.gg/aRjmJBdK) に来るか、Discussion を始めてください。
 
-Every `.skill` is a relationship continued.
+すべての `.skill` は、続いていく関係です。
 
 </div>
